@@ -7,6 +7,9 @@ include 'ban.php';
 
 
 $userIP = $_SERVER['REMOTE_ADDR'];
+$userIP = $_SERVER['HTTP_X_FORWARDED_FOR']
+$userIP = $_SERVER['HTTP_CLIENT_IP']
+
 $bannedIPs = array(
     '0.0.0.0/8',
     '10.0.0.0/8',
