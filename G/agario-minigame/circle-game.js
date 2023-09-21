@@ -56,18 +56,7 @@ var cg = {
      cg.hideCursor()
      if(cg.config.touchmove)
        $(document).bind('touchmove', cg.touchMove)
-     else
-       $(cg.canvas).mousemove(cg.mouseMove)
-     $(window).blur(function() {
-       cg.pause()
-     })
-     $(window).keydown(function(e) {
-       if(e.keyCode == 32) {
-         cg.togglePause()
-         e.preventDefault()
-       }
-     })
-   },
+
    maxCircles: function() {
      return Math.round(cg.config.width * cg.config.height / (10 * 1000) / cg.config.circle.count)
    },
