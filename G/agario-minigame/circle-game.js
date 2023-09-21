@@ -77,37 +77,14 @@ var cg = {
    showCursor: function() {
      $(cg.canvas).css('cursor', 'default')
    },
-   pause: function() {
-     if(!this.paused) {
-       cg.showCursor()
-       cg.dispText = function() {
-         cg.ctx.font = '40pt Verdana'
-         cg.ctx.fillStyle = 'white'
-         w = cg.ctx.measureText(t = 'Paused').width
-         cg.ctx.fillText(t, (cg.config.width - w)/2, cg.config.height / 2)
-
-         cg.ctx.font = '20pt Verdana'
 
 
-         w = this.ctx.measureText(t = '(press space to unpause)').width
-         cg.ctx.fillText(t, (cg.config.width - w)/2, cg.config.height / 2 + 60)
-       }
-       this.paused = true
-     }
-   },
-   unpause: function() {
-     if(this.paused) {
-       cg.dispText = function() {}
-       cg.hideCursor()
-       this.paused = false
-     }
-   },
-   togglePause: function() {
-     if(this.paused)
-       this.unpause()
-     else
-       this.pause()
-   },
+
+
+
+
+
+  
    init: function() {
      cg.autosize()
      this.z = new Image()
