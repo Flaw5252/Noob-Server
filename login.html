@@ -41,8 +41,9 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    localStorage.setItem('isLoggedIn', 'true');
-                    localStorage.setItem('username', data.user.username);
+                    // Use sessionStorage instead of localStorage
+                    sessionStorage.setItem('isLoggedIn', 'true');
+                    sessionStorage.setItem('username', data.user.username);
                     window.location.href = '/';
                 } else {
                     document.getElementById('message').innerHTML = 
