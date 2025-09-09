@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta name="description" content="V1 of Noob Server! click now!">
   <meta charset="UTF-8">
@@ -13,39 +12,47 @@
   <link rel="stylesheet" href="styles.css">
   <title>Noob Server | v1</title>
   <script src="particles.min.js"></script>
- 
-
+</head>
+<body>
   <div class="dropdown">
     <button class="dropbtn">☰</button>
     <div class="dropdown-content">
       <a href="index.html">
-      <i class="fa fa-fw fa-home"></i> Home </a>
+        <i class="fa fa-fw fa-home"></i> Home 
+      </a>
       <a href="collection.html">
-      <i class="fa fa-fw fa-gamepad"></i> Games </a>
+        <i class="fa fa-fw fa-gamepad"></i> Games 
+      </a>
+      <a href="#" onclick="logout()">
+        <i class="fa fa-fw fa-sign-out"></i> Logout 
+      </a>
     </div>
   </div>
 
   <div class="title">
     <a>N</a><a>o</a><a>o</a><a>b</a><a>&nbsp</a><a>S</a><a>e</a><a>r</a><a>v</a><a>e</a><a>r</a>
   </div>
+
+  <!-- Add welcome message -->
+  <div id="welcome-message" style="text-align: center; margin-top: 20px; color: white;"></div>
+
+  <script>
+    // Use sessionStorage instead of localStorage
+    const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+    const username = sessionStorage.getItem('username');
+
+    if (!isLoggedIn) {
+        window.location.href = '/login.html';
+    } else {
+        // Show welcome message
+        document.getElementById('welcome-message').innerHTML = 'Welcome back, ' + username + '!';
+    }
+
+    function logout() {
+        sessionStorage.removeItem('isLoggedIn');
+        sessionStorage.removeItem('username');
+        window.location.href = '/login.html';
+    }
+  </script>
 </body>
-
-
-  
-  
-<script>
-// Use sessionStorage instead of localStorage
-const isLoggedIn = sessionStorage.getItem('isLoggedIn');
-
-if (!isLoggedIn) {
-    window.location.href = '/login.html';
-}
-
-function logout() {
-    sessionStorage.removeItem('isLoggedIn');
-    sessionStorage.removeItem('username');
-    window.location.href = '/login.html';
-}
-</script>
-
 </html>
