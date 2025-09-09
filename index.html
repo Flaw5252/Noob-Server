@@ -54,5 +54,32 @@
         window.location.href = '/login.html';
     }
   </script>
+
+  // Admin panel
+  <div class="dropdown">
+  <button class="dropbtn">☰</button>
+  <div class="dropdown-content">
+    <a href="index.html">
+      <i class="fa fa-fw fa-home"></i> Home 
+    </a>
+    <a href="collection.html">
+      <i class="fa fa-fw fa-gamepad"></i> Games 
+    </a>
+    <a href="admin.html" id="adminLink" style="display: none;">
+      <i class="fa fa-fw fa-cog"></i> Admin Panel 
+    </a>
+    <a href="#" onclick="logout()">
+      <i class="fa fa-fw fa-sign-out"></i> Logout 
+    </a>
+  </div>
+</div>
+
+<script>
+  // Show admin link only for admin user
+  const username = sessionStorage.getItem('username');
+  if (username === 'admin') {
+    document.getElementById('adminLink').style.display = 'block';
+  }
+</script>
 </body>
 </html>
