@@ -1,0 +1,1650 @@
+I want a UI to sign in using usernames and passwords that ive input into my neon database
+You can build a sign-in UI with username/password authentication using FastAPI and Neon Postgres. Here's how to set it up:
+
+Database Model
+First, create a user model to store usernames and passwords in your Neon database 1:
+
+python
+from sqlalchemy import Column, Integer, String
+from database import Base
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+Pydantic Schemas
+Create schemas for user creation and authentication :
+
+python
+from pydantic import BaseModel, EmailStr
+
+class UserCreate(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+
+class User(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
+
+    class Config:
+        orm_mode = True
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+Authentication Utilities
+Set up password hashing and JWT token creation :
+
+python
+from passlib.context import CryptContext
+import jwt
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+Database Connection
+Connect to your Neon database 2:
+
+python
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+Environment Setup
+Create a .env file with your Neon connection string :
+
+DATABASE_URL=postgres://user:password@your-neon-hostname.neon.tech/neondb?sslmode=require&channel_binding=require
+This setup provides the backend foundation for a username/password authentication system with your Neon database 1. You'll need to create the corresponding API endpoints and frontend UI components to complete the sign-in interface.
+
+Sources
+Implementing Secure User Authentication in FastAPI using JWT Tokens and Neon Postgres
+DocsPrevious Setting up GitHub Codespaces with Neon Database Branching for Pull RequestsNext Building a High-Performance API with FastAPI, Pydantic, and Neon Postgres
+Building a High-Performance API with FastAPI, Pydantic, and Neon Postgres
+DocsPrevious Implementing Secure User Authentication in FastAPI using JWT Tokens and Neon PostgresNext Building a Real-Time Task Board with Laravel, Neon, and WebSockets
+can you do this without console commands
+Yes, you can create a username/password authentication system without console commands. Based on the Neon documentation, here are two approaches:
+
+Option 1: FastAPI with Direct Database Authentication
+You can create a complete web-based authentication system using FastAPI and your Neon database. Here's the setup:
+
+Database Connection
+python
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+1
+
+User Model
+python
+from sqlalchemy import Column, Integer, String
+from database import Base
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+Pydantic Schemas
+python
+from pydantic import BaseModel, EmailStr
+
+class UserCreate(BaseModel):
+    username: str
+Environment Configuration
+SECRET_KEY=your-secret-key
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+Option 2: Auth.js Integration
+For a simpler approach with pre-built UI components, you can use Auth.js with Neon. Auth.js recently introduced a Neon adapter that makes it easier to store user and session data in Neon2.
+
+Next.js Setup
+npx create-next-app guide-neon-next-authjs --typescript --eslint --tailwind --use-npm --no-src-dir --app --import-alias "@/*"
+This approach provides pre-built authentication UI components and handles the authentication flow automatically, storing user data directly in your Neon database.
+
+Both options eliminate the need for console commands and provide web-based interfaces for user authentication with your Neon database.
+
+Sources
+Implementing Secure User Authentication in FastAPI using JWT Tokens and Neon Postgres
+DocsPrevious Setting up GitHub Codespaces with Neon Database Branching for Pull RequestsNext Building a High-Performance API with FastAPI, Pydantic, and Neon Postgres
+Authenticate Neon Postgres application users with Auth.js
+DocsIntegrationsAuth.js
+ur still using python commands
+You can create a username/password authentication UI using Next.js and Neon without console commands. Based on the Neon documentation, here are web-based approaches:
+
+Option 1: Next.js with Clerk Authentication
+You can use Clerk for user authentication with your Neon database. Here's how to set up the sign-in UI1:
+
+Custom Sign-In Page
+Create a custom sign-in page at app/signin/page.tsx:
+
+tsx
+import { SignIn } from '@stackframe/stack';
+
+export default function CustomSignInPage() {
+  return (
+    <div>
+      <h1>My Custom Sign In page</h1>
+      <SignIn />
+    </div>
+  );
+}
+2
+
+Configure the Stack App
+Update your stack.ts file to use the custom sign-in page:
+
+tsx
+export const stackServerApp = new StackServerApp({
+  // ...
+  // add these three lines
+  urls: {
+    signIn: '/signin',
+  },
+});
+Option 2: Next.js with Okta Authentication
+For internal applications, you can use Okta with your Neon database3:
+
+Authentication Configuration
+Create an auth.ts file:
+
+tsx
+import NextAuth from 'next-auth';
+import Okta from 'next-auth/providers/okta';
+
+export const { handlers, signIn, signOut, auth } = NextAuth({
+  providers: [Okta],
+  callbacks: {
+    async session({ session, token }) {
+      session.user.id = token.sub as string;
+      return session;
+    },
+  },
+});
+Login UI Component
+Create a login component in your app/page.tsx:
+
+tsx
+function LoginBox() {
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="w-full max-w-md space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+            Sign in to your account
+          </h2>
+        </div>
+        <div>
+          <a
+            href="/api/auth/signin"
+            className="group relative flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+          >
+            Sign in
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+Database Integration
+Both approaches store user data in your Neon database. You can define a user schema like this:
+
+tsx
+import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+
+export const UserMessages = pgTable('user_messages', {
+  user_id: text('user_id').primaryKey().notNull(),
+  createTs: timestamp('create_ts').defaultNow().notNull(),
+  message: text('message').notNull(),
+});
+1
+
+These approaches provide complete web-based authentication UIs that integrate with your Neon database without requiring console commands.
+
+Sources
+Authenticate Neon Postgres application users with Clerk
+DocsIntegrationsClerk
+Custom Pages
+DocsNeon AuthCustom pages
+Authenticate Neon Postgres application users with Okta
+DocsIntegrationsOkta
+make it javascript and tell me what to copy and paste and where and what to name files
+Here's a complete JavaScript authentication setup using Next.js, Clerk, and Neon. I'll tell you exactly what to copy and paste for each file:
+
+File 1: package.json
+Copy and paste this:
+
+json
+{
+  "name": "neon-auth-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "latest",
+    "@neondatabase/serverless": "latest",
+    "drizzle-orm": "latest",
+    "next": "14.1",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "drizzle-kit": "latest",
+    "dotenv": "latest"
+  }
+}
+1
+
+File 2: .env.local
+Create this file in your project root and paste:
+
+DATABASE_URL=postgresql://[user]:[password]@[neon_hostname]/[dbname]?sslmode=require&channel_binding=require
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_youruniquevalue
+CLERK_SECRET_KEY=sk_test_youruniquevalue
+2, 1
+
+File 3: src/app/db/schema.js
+Create this file and paste:
+
+javascript
+import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+
+export const UserMessages = pgTable('user_messages', {
+  user_id: text('user_id').primaryKey().notNull(),
+  createTs: timestamp('create_ts').defaultNow().notNull(),
+  message: text('message').notNull()
+});
+File 4: src/app/db/index.js
+Create this file and paste:
+
+javascript
+import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { UserMessages } from './schema';
+
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL must be a Neon postgres connection string')
+}
+
+const sql = neon(process.env.DATABASE_URL);
+
+export const db = drizzle(sql, {
+  schema: { UserMessages }
+});
+File 5: src/app/layout.js
+Create this file and paste:
+
+javascript
+import { ClerkProvider, UserButton } from '@clerk/nextjs';
+
+export default function RootLayout({ children }) {
+  return (
+    <ClerkProvider>
+      <html lang="en">
+        <body>
+          <div className="p-4 bg-white">
+            <UserButton showName={true}></UserButton>
+          </div>
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
+  );
+}
+File 6: src/middleware.js
+Create this file and paste:
+
+javascript
+import { authMiddleware } from "@clerk/nextjs";
+
+export default authMiddleware({
+  publicRoutes: []
+});
+
+export const config = {
+  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
+};
+File 7: src/app/actions.js
+Create this file and paste:
+
+javascript
+'use server';
+
+import { currentUser } from "@clerk/nextjs";
+import { UserMessages } from "./db/schema";
+import { db } from "./db";
+import { redirect } from "next/navigation";
+import { eq } from "drizzle-orm";
+
+export async function createUserMessage(formData) {
+  const user = await currentUser();
+  
+  if (!user) {
+    redirect('/sign-in');
+  }
+
+  const message = formData.get('message');
+  
+  await db.insert(UserMessages).values({
+    user_id: user.id,
+    message: message
+  });
+  
+  redirect('/');
+}
+
+export async function deleteUserMessage(formData) {
+  const user = await currentUser();
+  
+  if (!user) {
+    redirect('/sign-in');
+  }
+
+  await db.delete(UserMessages).where(eq(UserMessages.user_id, user.id));
+  
+  redirect('/');
+}
+File 8: drizzle.config.js
+Create this file in your project root and paste:
+
+javascript
+import * as dotenv from "dotenv";
+
+dotenv.config();
+
+if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL not found in environment');
+
+export default {
+  schema: './src/app/db/schema.js',
+  out: './src/app/db/migrations',
+  driver: 'pg',
+  dbCredentials: {
+    connectionString: process.env.DATABASE_URL,
+  },
+  strict: true,
+};
+File 9: src/app/page.js
+Create this file and paste:
+
+javascript
+import { currentUser } from "@clerk/nextjs";
+import { createUserMessage, deleteUserMessage } from "./actions";
+import { db } from "./db";
+import { UserMessages } from "./db/schema";
+import { eq } from "drizzle-orm";
+
+export default async function Home() {
+  const user = await currentUser();
+  
+  if (!user) {
+    return <div>Please sign in</div>;
+  }
+
+  const userMessage = await db.select().from(UserMessages).where(eq(UserMessages.user_id, user.id));
+
+  return (
+    <div className="max-w-md mx-auto mt-8">
+      <h1 className="text-2xl font-bold mb-4">Welcome, {user.firstName}!</h1>
+      
+      {userMessage.length === 0 ? (
+        <form action={createUserMessage}>
+          <input
+            name="message"
+            placeholder="Enter your message"
+            className="w-full p-2 border rounded mb-2"
+            required
+          />
+          <button 
+            type="submit"
+            className="w-full bg-blue-500 text-white p-2 rounded"
+          >
+            Save Message
+          </button>
+        </form>
+      ) : (
+        <div>
+          <p className="mb-4">Your message: {userMessage[0].message}</p>
+          <form action={deleteUserMessage}>
+            <button 
+              type="submit"
+              className="bg-red-500 text-white p-2 rounded"
+            >
+              Delete Message
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+This creates a complete authentication system where users sign in through Clerk's UI and can store/retrieve data from your Neon database. The authentication is handled automatically by Clerk's middleware and components.
+
+Sources
+Next.js authentication using Clerk, Drizzle ORM, and Neon
+Blog
+Connect a JavaScript/Node.js application to Neon Postgres
+DocsGetting StartedJavascript
+will this be compatible with a github repository that deploys to netlify
+The Next.js setup I provided will work with GitHub and Netlify, but you'll need to modify it for Netlify Functions. Based on the Neon documentation, here's the Netlify-compatible version:
+
+File 1: netlify.toml
+Create this file in your project root and paste:
+
+toml
+[build]
+  functions = "netlify/functions"
+  publish = "dist"
+
+[functions]
+  node_bundler = "esbuild"
+1
+
+File 2: netlify/functions/auth.js
+Create this file and paste:
+
+javascript
+import { neon } from '@neondatabase/serverless';
+
+const sql = neon(process.env.DATABASE_URL);
+
+export const handler = async (event, context) => {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE'
+  };
+
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers };
+  }
+
+  if (event.httpMethod === 'POST') {
+    const { username, password } = JSON.parse(event.body);
+    
+    try {
+      const result = await sql`
+        SELECT id, username FROM users 
+        WHERE username = ${username} AND password = ${password}
+      `;
+      
+      if (result.length > 0) {
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true, user: result[0] })
+        };
+      } else {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ success: false, message: 'Invalid credentials' })
+        };
+      }
+    } catch (error) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ success: false, error: error.message })
+      };
+    }
+  }
+
+  return {
+    statusCode: 405,
+    headers,
+    body: JSON.stringify({ message: 'Method not allowed' })
+  };
+};
+File 3: package.json
+Update your package.json for Netlify:
+
+json
+{
+  "name": "neon-netlify-auth",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "echo 'Build complete'",
+    "dev": "netlify dev"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "latest"
+  },
+  "devDependencies": {
+    "netlify-cli": "latest"
+  }
+}
+File 4: dist/index.html
+Create this file for your sign-in UI:
+
+html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sign In</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; }
+        .form-group { margin-bottom: 15px; }
+        input { width: 100%; padding: 8px; margin-top: 5px; }
+        button { width: 100%; padding: 10px; background: #007cba; color: white; border: none; }
+    </style>
+</head>
+<body>
+    <h2>Sign In</h2>
+    <form id="loginForm">
+        <div class="form-group">
+            <label>Username:</label>
+            <input type="text" id="username" required>
+        </div>
+        <div class="form-group">
+            <label>Password:</label>
+            <input type="password" id="password" required>
+        </div>
+        <button type="submit">Sign In</button>
+    </form>
+    <div id="message"></div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/.netlify/functions/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('message').innerHTML = 
+                        '<p style="color: green;">Login successful! Welcome ' + data.user.username + '</p>';
+                } else {
+                    document.getElementById('message').innerHTML = 
+                        '<p style="color: red;">Login failed: ' + data.message + '</p>';
+                }
+            } catch (error) {
+                document.getElementById('message').innerHTML = 
+                    '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        });
+    </script>
+</body>
+</html>
+Environment Variables
+In your Netlify dashboard, add these environment variables:
+
+DATABASE_URL=postgresql://[user]:[password]@[neon_hostname]/[dbname]?sslmode=require&channel_binding=require
+This setup will work perfectly with GitHub repositories that deploy to Netlify, using Netlify Functions to handle authentication with your Neon database.
+
+Sources
+Use Neon with Netlify Functions
+DocsIntegrationsNetlify Functions
+How do I add username and passwords now
+You need to create a users table in your Neon database and add usernames/passwords. Here's how:
+
+Step 1: Create the Users Table
+First, create a new file called create-table.js and paste this:
+
+javascript
+import { neon } from '@neondatabase/serverless';
+
+const sql = neon(process.env.DATABASE_URL);
+
+async function createUsersTable() {
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+    console.log('Users table created successfully');
+  } catch (error) {
+    console.error('Error creating table:', error);
+  }
+}
+
+createUsersTable();
+Step 2: Add Users to the Database
+Create a file called add-users.js and paste this:
+
+javascript
+import { neon } from '@neondatabase/serverless';
+
+const sql = neon(process.env.DATABASE_URL);
+
+async function addUsers() {
+  try {
+    // Add your users here - replace with your actual usernames and passwords
+    const users = [
+      { username: 'admin', password: 'admin123' },
+      { username: 'user1', password: 'password1' },
+      { username: 'testuser', password: 'testpass' }
+    ];
+
+    for (const user of users) {
+      await sql`
+        INSERT INTO users (username, password) 
+        VALUES (${user.username}, ${user.password})
+        ON CONFLICT (username) DO NOTHING
+      `;
+      console.log(`Added user: ${user.username}`);
+    }
+    
+    console.log('All users added successfully');
+  } catch (error) {
+    console.error('Error adding users:', error);
+  }
+}
+
+addUsers();
+Step 3: Create Environment File
+Create a .env file in your project root and paste:
+
+DATABASE_URL=postgresql://[user]:[password]@[neon_hostname]/[dbname]?sslmode=require&channel_binding=require
+Replace the bracketed values with your actual Neon connection details.
+
+Step 4: Run the Scripts
+You can run these scripts using Node.js:
+
+First run: node create-table.js
+Then run: node add-users.js
+Alternative: Direct Database Access
+You can also add users directly through the Neon SQL Editor in your dashboard:
+
+sql
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+INSERT INTO users (username, password) VALUES 
+('admin', 'admin123'),
+('user1', 'password1'),
+('testuser', 'testpass');
+Now your authentication system will work with these usernames and passwords stored in your Neon database.
+
+Note: In production, you should hash passwords for security, but this simple approach works for testing.
+
+do i do step 1 in github?
+You have two options - you can create the table either through the Neon Console (web interface) or through GitHub files.
+
+Option 1: Use Neon Console (Easiest)
+Go to your Neon Console and use the SQL Editor to run this directly1:
+
+sql
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+INSERT INTO users (username, password) VALUES 
+('admin', 'admin123'),
+('user1', 'password1'),
+('testuser', 'testpass');
+Option 2: Add to GitHub Repository
+If you want everything in your GitHub repo, create these files:
+
+File: scripts/create-table.js (add this to your GitHub repo)
+
+javascript
+import { neon } from '@neondatabase/serverless';
+
+const sql = neon(process.env.DATABASE_URL);
+
+async function createUsersTable() {
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+    
+    // Add some default users
+    await sql`
+      INSERT INTO users (username, password) 
+      VALUES ('admin', 'admin123')
+      ON CONFLICT (username) DO NOTHING
+    `;
+    
+    console.log('Users table and data created successfully');
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+createUsersTable();
+The easiest approach is Option 1 - just use the Neon Console SQL Editor to create your table and add users directly. This doesn't require any additional setup and works immediately with your Netlify deployment.
+
+Sources
+Manage databases
+DocsPlatformDatabases
+It returned with this error in the console (index):1  Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+/.netlify/functions/auth:1   Failed to load resource: the server responded with a status of 502 ()
+[NEW] Explain Console errors by using Copilot in Edge: click
+         
+         to explain an error. 
+        Learn more
+        Don't show again
+(index):1  Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+(index):1  Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+(index):35   POST https://noob-server.netlify.app/.netlify/functions/auth 502 (Bad Gateway)
+(anonymous) @ (index):35
+(index):35   POST https://noob-server.netlify.app/.netlify/functions/auth 502 (Bad Gateway)
+(anonymous) @ (index):35
+(index):35   POST https://noob-server.netlify.app/.netlify/functions/auth 502 (Bad Gateway)
+(anonymous) @ (index):35
+(index):35   POST https://noob-server.netlify.app/.netlify/functions/auth 502 (Bad Gateway)
+(anonymous) @ (index):35
+(index):35   POST https://noob-server.netlify.app/.netlify/functions/auth 502 (Bad Gateway)
+(anonymous) @ (index):35
+(index):1  Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+The 502 error indicates your Netlify function isn't working correctly. Let's fix this by using the proper Neon serverless driver configuration for Netlify Functions.
+
+Fix 1: Update netlify/functions/auth.js
+Replace your current auth function with this corrected version:
+
+javascript
+import { neon } from '@neondatabase/serverless';
+
+export const handler = async (event, context) => {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE'
+  };
+
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers };
+  }
+
+  if (event.httpMethod === 'POST') {
+    try {
+      if (!process.env.DATABASE_URL) {
+        throw new Error('DATABASE_URL not found in environment variables');
+      }
+
+      const sql = neon(process.env.DATABASE_URL);
+      const { username, password } = JSON.parse(event.body);
+      
+      const result = await sql`
+        SELECT id, username FROM users 
+        WHERE username = ${username} AND password = ${password}
+      `;
+      
+      if (result.length > 0) {
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true, user: result[0] })
+        };
+      } else {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ success: false, message: 'Invalid credentials' })
+        };
+      }
+    } catch (error) {
+      console.error('Function error:', error);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ success: false, error: error.message })
+      };
+    }
+  }
+
+  return {
+    statusCode: 405,
+    headers,
+    body: JSON.stringify({ message: 'Method not allowed' })
+  };
+};
+Fix 2: Check Environment Variables
+Make sure you've added your DATABASE_URL in your Netlify dashboard:
+
+Go to your Netlify site dashboard
+Click "Site settings"
+Click "Environment variables"
+Add: DATABASE_URL with your Neon connection string
+Fix 3: Update package.json
+Make sure your package.json includes the correct dependencies:
+
+json
+{
+  "name": "neon-netlify-auth",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@neondatabase/serverless": "^0.9.0"
+  }
+}
+Fix 4: Create Users Table
+Use the Neon Console SQL Editor to create your users table:
+
+sql
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+INSERT INTO users (username, password) VALUES 
+('admin', 'admin123'),
+('user1', 'password1');
+The key issue is likely that the Neon connection wasn't properly configured in the serverless function. This updated version should resolve the 502 error.
+
+(index):1  Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+/.netlify/functions/auth:1   Failed to load resource: the server responded with a status of 500 ()
+(index):1  Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+[NEW] Explain Console errors by using Copilot in Edge: click
+         
+         to explain an error. 
+        Learn more
+        Don't show again
+(index):1  Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+The 500 error suggests an issue with the Netlify function. Let's fix this by using the exact Neon serverless driver configuration from the documentation.
+
+Fix 1: Update netlify/functions/auth.js
+Replace your auth function with this version that follows the Neon documentation exactly:
+
+javascript
+import { neon } from '@neondatabase/serverless';
+
+export const handler = async (event, context) => {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE'
+  };
+
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers };
+  }
+
+  if (event.httpMethod === 'POST') {
+    try {
+      const sql = neon(process.env.DATABASE_URL);
+      const { username, password } = JSON.parse(event.body);
+      
+      const result = await sql`SELECT id, username FROM users WHERE username = ${username} AND password = ${password}`;
+      
+      if (result.length > 0) {
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true, user: result[0] })
+        };
+      } else {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({ success: false, message: 'Invalid credentials' })
+        };
+      }
+    } catch (error) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ success: false, error: error.message })
+      };
+    }
+  }
+
+  return {
+    statusCode: 405,
+    headers,
+    body: JSON.stringify({ message: 'Method not allowed' })
+  };
+};
+1
+
+Fix 2: Update package.json
+Make sure your package.json has the correct Neon driver:
+
+json
+{
+  "name": "neon-netlify-auth",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@neondatabase/serverless": "latest"
+  }
+}
+Fix 3: Verify Environment Variables
+In your Netlify dashboard, make sure your DATABASE_URL is formatted exactly like this:
+
+DATABASE_URL=postgresql://[user]:[password]@[neon_hostname]/[dbname]
+Fix 4: Test the Function Locally
+Create a simple test file test-function.js:
+
+javascript
+import { neon } from '@neondatabase/serverless';
+
+const sql = neon(process.env.DATABASE_URL);
+const result = await sql`SELECT * FROM users LIMIT 1`;
+console.log(result);
+The key issue is likely the environment variable configuration or the function setup. Make sure your DATABASE_URL is properly set in Netlify's environment variables section.
+
+Sources
+Neon serverless driver
+DocsConnect
+It said success but didnt redirect me to my main index.html homepage
+The authentication succeeded but you need to add a redirect to your homepage. Update your dist/index.html file to redirect after successful login:
+
+html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sign In</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; }
+        .form-group { margin-bottom: 15px; }
+        input { width: 100%; padding: 8px; margin-top: 5px; }
+        button { width: 100%; padding: 10px; background: #007cba; color: white; border: none; }
+    </style>
+</head>
+<body>
+    <h2>Sign In</h2>
+    <form id="loginForm">
+        <div class="form-group">
+            <label>Username:</label>
+            <input type="text" id="username" required>
+        </div>
+        <div class="form-group">
+            <label>Password:</label>
+            <input type="password" id="password" required>
+        </div>
+        <button type="submit">Sign In</button>
+    </form>
+    <div id="message"></div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/.netlify/functions/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Store login state
+                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('username', data.user.username);
+                    
+                    // Redirect to homepage
+                    window.location.href = '/homepage.html';
+                } else {
+                    document.getElementById('message').innerHTML = 
+                        '<p style="color: red;">Login failed: ' + data.message + '</p>';
+                }
+            } catch (error) {
+                document.getElementById('message').innerHTML = 
+                    '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        });
+    </script>
+</body>
+</html>
+Now create your homepage file dist/homepage.html:
+
+html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Homepage</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; }
+        button { padding: 10px 20px; background: #007cba; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Welcome to Your Dashboard</h1>
+        <button onclick="logout()">Logout</button>
+    </div>
+    
+    <div id="userInfo"></div>
+    <div id="content">
+        <p>You have successfully logged in!</p>
+        <p>This is your protected homepage.</p>
+    </div>
+
+    <script>
+        // Check if user is logged in
+        const isLoggedIn = localStorage.getItem('isLoggedIn');
+        const username = localStorage.getItem('username');
+        
+        if (!isLoggedIn) {
+            window.location.href = '/index.html';
+        } else {
+            document.getElementById('userInfo').innerHTML = 
+                '<p>Hello, ' + username + '!</p>';
+        }
+        
+        function logout() {
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('username');
+            window.location.href = '/index.html';
+        }
+    </script>
+</body>
+</html>
+Now when you successfully log in, it will redirect you to the homepage and store your login state in localStorage.
+
+I have a homepage called index.html in my root
+Perfect! Since you already have an index.html in your root, let's update your login page to redirect there after successful authentication.
+
+Update your login page (rename it to login.html and place it in dist/login.html):
+
+html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sign In</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; }
+        .form-group { margin-bottom: 15px; }
+        input { width: 100%; padding: 8px; margin-top: 5px; }
+        button { width: 100%; padding: 10px; background: #007cba; color: white; border: none; }
+    </style>
+</head>
+<body>
+    <h2>Sign In</h2>
+    <form id="loginForm">
+        <div class="form-group">
+            <label>Username:</label>
+            <input type="text" id="username" required>
+        </div>
+        <div class="form-group">
+            <label>Password:</label>
+            <input type="password" id="password" required>
+        </div>
+        <button type="submit">Sign In</button>
+    </form>
+    <div id="message"></div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/.netlify/functions/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Store login state
+                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('username', data.user.username);
+                    
+                    // Redirect to your existing homepage
+                    window.location.href = '/index.html';
+                } else {
+                    document.getElementById('message').innerHTML = 
+                        '<p style="color: red;">Login failed: ' + data.message + '</p>';
+                }
+            } catch (error) {
+                document.getElementById('message').innerHTML = 
+                    '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        });
+    </script>
+</body>
+</html>
+Then add this JavaScript to your existing index.html to check authentication and show user info:
+
+html
+<script>
+// Add this script to your existing index.html
+const isLoggedIn = localStorage.getItem('isLoggedIn');
+const username = localStorage.getItem('username');
+
+if (!isLoggedIn) {
+    // Redirect to login if not authenticated
+    window.location.href = '/login.html';
+} else {
+    // Show welcome message or user info
+    console.log('Welcome back, ' + username + '!');
+    // You can add a welcome message to your page here
+}
+
+function logout() {
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('username');
+    window.location.href = '/login.html';
+}
+</script>
+Now users will be redirected to your existing index.html homepage after successful login, and the homepage will check if they're authenticated before allowing access.
+
+It says page not found when i open website now
+Let's fix the page not found issue. The problem is with your file structure. Here's the correct setup:
+
+File 1: dist/index.html (Your main homepage)
+This should be your existing homepage content, but add this authentication check:
+
+html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Your Homepage</title>
+    <!-- Your existing head content -->
+</head>
+<body>
+    <!-- Your existing homepage content -->
+    
+    <script>
+        // Check authentication on page load
+        const isLoggedIn = localStorage.getItem('isLoggedIn');
+        
+        if (!isLoggedIn) {
+            // Redirect to login if not authenticated
+            window.location.href = '/login.html';
+        }
+        
+        // Optional: Add logout function
+        function logout() {
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('username');
+            window.location.href = '/login.html';
+        }
+    </script>
+</body>
+</html>
+File 2: dist/login.html (Your login page)
+html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sign In</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; }
+        .form-group { margin-bottom: 15px; }
+        input { width: 100%; padding: 8px; margin-top: 5px; }
+        button { width: 100%; padding: 10px; background: #007cba; color: white; border: none; }
+    </style>
+</head>
+<body>
+    <h2>Sign In</h2>
+    <form id="loginForm">
+        <div class="form-group">
+            <label>Username:</label>
+            <input type="text" id="username" required>
+        </div>
+        <div class="form-group">
+            <label>Password:</label>
+            <input type="password" id="password" required>
+        </div>
+        <button type="submit">Sign In</button>
+    </form>
+    <div id="message"></div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/.netlify/functions/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('username', data.user.username);
+                    window.location.href = '/';
+                } else {
+                    document.getElementById('message').innerHTML = 
+                        '<p style="color: red;">Login failed: ' + data.message + '</p>';
+                }
+            } catch (error) {
+                document.getElementById('message').innerHTML = 
+                    '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        });
+    </script>
+</body>
+</html>
+File 3: Update netlify.toml
+toml
+[build]
+  functions = "netlify/functions"
+  publish = "dist"
+
+[functions]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+The key changes:
+
+Both HTML files go in the dist folder
+Your main homepage is dist/index.html
+Login page is dist/login.html
+The redirect goes to / (which serves index.html)
+This should fix the "page not found" error and make your authentication flow work properly.
+
+my existing homepage is in the root not in dist/
+javascript
+const sql = neon(process.env.DATABASE_URL);
+const result = await sql`SELECT id, username FROM users WHERE username = ${username} AND password = ${password}`;
+1
+
+Let's fix this by changing your Netlify configuration to publish from the root instead of dist:
+
+File 1: Update netlify.toml
+toml
+[build]
+  functions = "netlify/functions"
+  publish = "."
+
+[functions]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+File 2: Move your login page to login.html (in root, same level as your existing index.html)
+html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sign In</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; }
+        .form-group { margin-bottom: 15px; }
+        input { width: 100%; padding: 8px; margin-top: 5px; }
+        button { width: 100%; padding: 10px; background: #007cba; color: white; border: none; }
+    </style>
+</head>
+<body>
+    <h2>Sign In</h2>
+    <form id="loginForm">
+        <div class="form-group">
+            <label>Username:</label>
+            <input type="text" id="username" required>
+        </div>
+        <div class="form-group">
+            <label>Password:</label>
+            <input type="password" id="password" required>
+        </div>
+        <button type="submit">Sign In</button>
+    </form>
+    <div id="message"></div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/.netlify/functions/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('username', data.user.username);
+                    window.location.href = '/';
+                } else {
+                    document.getElementById('message').innerHTML = 
+                        '<p style="color: red;">Login failed: ' + data.message + '</p>';
+                }
+            } catch (error) {
+                document.getElementById('message').innerHTML = 
+                    '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        });
+    </script>
+</body>
+</html>
+File 3: Add this script to your existing index.html (in root)
+Add this JavaScript to your existing homepage:
+
+html
+<script>
+// Add this to your existing index.html
+const isLoggedIn = localStorage.getItem('isLoggedIn');
+
+if (!isLoggedIn) {
+    window.location.href = '/login.html';
+}
+
+function logout() {
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('username');
+    window.location.href = '/login.html';
+}
+</script>
+Now your file structure will be:
+
+index.html (your existing homepage in root)
+login.html (new login page in root)
+netlify/functions/auth.js (your auth function)
+netlify.toml (updated to publish from root)
+This should fix the page not found issue while keeping your existing homepage in the root directory.
+
+Sources
+Use Neon with Netlify Functions
+DocsIntegrationsNetlify Functions
+Can you make it so it doesnt keep me signed in when i reopen it in a new tab
+Yes! Change the localStorage to sessionStorage so it only persists within the current browser session. Here's the updated code:
+
+File 1: Update your login.html
+html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sign In</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; }
+        .form-group { margin-bottom: 15px; }
+        input { width: 100%; padding: 8px; margin-top: 5px; }
+        button { width: 100%; padding: 10px; background: #007cba; color: white; border: none; }
+    </style>
+</head>
+<body>
+    <h2>Sign In</h2>
+    <form id="loginForm">
+        <div class="form-group">
+            <label>Username:</label>
+            <input type="text" id="username" required>
+        </div>
+        <div class="form-group">
+            <label>Password:</label>
+            <input type="password" id="password" required>
+        </div>
+        <button type="submit">Sign In</button>
+    </form>
+    <div id="message"></div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/.netlify/functions/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Use sessionStorage instead of localStorage
+                    sessionStorage.setItem('isLoggedIn', 'true');
+                    sessionStorage.setItem('username', data.user.username);
+                    window.location.href = '/';
+                } else {
+                    document.getElementById('message').innerHTML = 
+                        '<p style="color: red;">Login failed: ' + data.message + '</p>';
+                }
+            } catch (error) {
+                document.getElementById('message').innerHTML = 
+                    '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        });
+    </script>
+</body>
+</html>
+File 2: Update your existing index.html
+Add this script to your existing homepage:
+
+html
+<script>
+// Use sessionStorage instead of localStorage
+const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+
+if (!isLoggedIn) {
+    window.location.href = '/login.html';
+}
+
+function logout() {
+    sessionStorage.removeItem('isLoggedIn');
+    sessionStorage.removeItem('username');
+    window.location.href = '/login.html';
+}
+</script>
+Now when you close the browser tab or open a new tab, you'll need to sign in again. The session will only persist within the same browser tab/window, not across new tabs or browser restarts.
+
+The key difference:
+
+localStorage = persists until manually cleared
+sessionStorage = clears when tab/browser closes
+Here is my index.html for reference
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta name="description" content="V1 of Noob Server! click now!">
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <script src="https://kit.fontawesome.com/fb203351e2.js" crossorigin="anonymous"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <title>Noob Server | v1</title>
+  <script src="particles.min.js"></script>
+ 
+
+  <div class="dropdown">
+    <button class="dropbtn">☰</button>
+    <div class="dropdown-content">
+      <a href="index.html">
+      <i class="fa fa-fw fa-home"></i> Home </a>
+      <a href="collection.html">
+      <i class="fa fa-fw fa-gamepad"></i> Games </a>
+    </div>
+  </div>
+
+  <div class="title">
+    <a>N</a><a>o</a><a>o</a><a>b</a><a>&nbsp</a><a>S</a><a>e</a><a>r</a><a>v</a><a>e</a><a>r</a>
+  </div>
+</body>
+
+
+  
+  
+<script>
+// Use sessionStorage instead of localStorage
+const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+
+if (!isLoggedIn) {
+    window.location.href = '/login.html';
+}
+
+function logout() {
+    sessionStorage.removeItem('isLoggedIn');
+    sessionStorage.removeItem('username');
+    window.location.href = '/login.html';
+}
+</script>
+
+</html>
+I see your index.html has some HTML structure issues. Here's the corrected version with proper authentication:
+
+html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="description" content="V1 of Noob Server! click now!">
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <script src="https://kit.fontawesome.com/fb203351e2.js" crossorigin="anonymous"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <title>Noob Server | v1</title>
+  <script src="particles.min.js"></script>
+</head>
+<body>
+  <div class="dropdown">
+    <button class="dropbtn">☰</button>
+    <div class="dropdown-content">
+      <a href="index.html">
+        <i class="fa fa-fw fa-home"></i> Home 
+      </a>
+      <a href="collection.html">
+        <i class="fa fa-fw fa-gamepad"></i> Games 
+      </a>
+      <a href="#" onclick="logout()">
+        <i class="fa fa-fw fa-sign-out"></i> Logout 
+      </a>
+    </div>
+  </div>
+
+  <div class="title">
+    <a>N</a><a>o</a><a>o</a><a>b</a><a>&nbsp</a><a>S</a><a>e</a><a>r</a><a>v</a><a>e</a><a>r</a>
+  </div>
+
+  <!-- Add welcome message -->
+  <div id="welcome-message" style="text-align: center; margin-top: 20px; color: white;"></div>
+
+  <script>
+    // Use sessionStorage instead of localStorage
+    const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+    const username = sessionStorage.getItem('username');
+
+    if (!isLoggedIn) {
+        window.location.href = '/login.html';
+    } else {
+        // Show welcome message
+        document.getElementById('welcome-message').innerHTML = 'Welcome back, ' + username + '!';
+    }
+
+    function logout() {
+        sessionStorage.removeItem('isLoggedIn');
+        sessionStorage.removeItem('username');
+        window.location.href = '/login.html';
+    }
+  </script>
+</body>
+</html>
+The key fixes:
+
+Moved the <script> tag inside the <body> before the closing </body> tag
+Added proper HTML structure (missing opening <body> tag)
+Added a logout option to your dropdown menu
+Added a welcome message that shows the logged-in username
+The authentication check remains the same using sessionStorage
+Now when you open a new tab, you'll need to log in again, and your existing page structure is preserved with the authentication system integrated.
+
+Can you create an administrative panel that I can edit username and passwords with using my login which is Username: admin Password: administratorlogin
