@@ -41,8 +41,12 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    document.getElementById('message').innerHTML = 
-                        '<p style="color: green;">Login successful! Welcome ' + data.user.username + '</p>';
+                    // Store login state
+                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('username', data.user.username);
+                    
+                    // Redirect to homepage
+                    window.location.href = '/homepage.html';
                 } else {
                     document.getElementById('message').innerHTML = 
                         '<p style="color: red;">Login failed: ' + data.message + '</p>';
