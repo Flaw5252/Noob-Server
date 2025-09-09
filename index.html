@@ -29,18 +29,15 @@
     <a>N</a><a>o</a><a>o</a><a>b</a><a>&nbsp</a><a>S</a><a>e</a><a>r</a><a>v</a><a>e</a><a>r</a>
   </div>
 </body>
+
+
+  
   <script>
-// Add this script to your existing index.html
+// Add this to your existing index.html
 const isLoggedIn = localStorage.getItem('isLoggedIn');
-const username = localStorage.getItem('username');
 
 if (!isLoggedIn) {
-    // Redirect to login if not authenticated
     window.location.href = '/login.html';
-} else {
-    // Show welcome message or user info
-    console.log('Welcome back, ' + username + '!');
-    // You can add a welcome message to your page here
 }
 
 function logout() {
