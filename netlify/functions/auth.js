@@ -1,7 +1,5 @@
 import { neon } from '@neondatabase/serverless';
 
-const sql = neon(process.env.DATABASE_URL);
-
 export const handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -14,9 +12,14 @@ export const handler = async (event, context) => {
   }
 
   if (event.httpMethod === 'POST') {
-    const { username, password } = JSON.parse(event.body);
-    
     try {
+      if (!process.env.DATABASE_URL) {
+        throw new Error('DATABASE_URL not found in environment variables');
+      }
+
+      const sql = neon(process.env.DATABASE_URL);
+      const { username, password } = JSON.parse(event.body);
+      
       const result = await sql`
         SELECT id, username FROM users 
         WHERE username = ${username} AND password = ${password}
@@ -36,6 +39,7 @@ export const handler = async (event, context) => {
         };
       }
     } catch (error) {
+      console.error('Function error:', error);
       return {
         statusCode: 500,
         headers,
