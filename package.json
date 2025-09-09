@@ -2,14 +2,7 @@
   "name": "neon-netlify-auth",
   "version": "1.0.0",
   "type": "module",
-  "scripts": {
-    "build": "echo 'Build complete'",
-    "dev": "netlify dev"
-  },
   "dependencies": {
-    "@neondatabase/serverless": "latest"
-  },
-  "devDependencies": {
-    "netlify-cli": "latest"
+    "@neondatabase/serverless": "^0.9.0"
   }
 }
