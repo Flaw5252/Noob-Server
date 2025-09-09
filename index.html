@@ -32,17 +32,18 @@
 
 
   
-  <script>
-// Add this to your existing index.html
-const isLoggedIn = localStorage.getItem('isLoggedIn');
+  
+<script>
+// Use sessionStorage instead of localStorage
+const isLoggedIn = sessionStorage.getItem('isLoggedIn');
 
 if (!isLoggedIn) {
     window.location.href = '/login.html';
 }
 
 function logout() {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('username');
+    sessionStorage.removeItem('isLoggedIn');
+    sessionStorage.removeItem('username');
     window.location.href = '/login.html';
 }
 </script>
