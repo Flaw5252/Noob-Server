@@ -7,7 +7,7 @@
   <style>
     body { 
       font-family: Arial, sans-serif; 
-      max-width: 800px; 
+      max-width: 1200px; 
       margin: 50px auto; 
       background: #1a1a1a; 
       color: white; 
@@ -18,7 +18,29 @@
       align-items: center; 
       margin-bottom: 30px; 
     }
-    .user-list { 
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #444;
+    }
+    .tab {
+      padding: 10px 20px;
+      background: #333;
+      border: none;
+      color: white;
+      cursor: pointer;
+      margin-right: 5px;
+    }
+    .tab.active {
+      background: #007cba;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .user-list, .activity-panel { 
       background: #2a2a2a; 
       padding: 20px; 
       border-radius: 5px; 
@@ -34,7 +56,7 @@
     .form-group { 
       margin-bottom: 15px; 
     }
-    input { 
+    input, textarea { 
       width: 100%; 
       padding: 8px; 
       margin-top: 5px; 
@@ -59,10 +81,31 @@
     .activate-btn {
       background: #28a745;
     }
+    .message-btn {
+      background: #28a745;
+    }
+    .refresh-btn {
+      background: #ffc107;
+      color: black;
+    }
     .add-user { 
       background: #2a2a2a; 
       padding: 20px; 
       border-radius: 5px; 
+    }
+    .status-active { color: #28a745; }
+    .status-inactive { color: #dc3545; }
+    .message-form {
+      background: #2a2a2a;
+      padding: 20px;
+      border-radius: 5px;
+      margin-top: 20px;
+      display: none;
+    }
+    .activity-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
     }
   </style>
 </head>
@@ -76,234 +119,64 @@
     </div>
   </div>
 
-  <div class="user-list">
-    <h2>Current Users</h2>
-    <div id="usersList"></div>
+  <!-- Tab Navigation -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('users')">User Management</button>
+    <button class="tab" onclick="showTab('activity')">User Activity</button>
   </div>
 
-  <div class="add-user">
-    <h2>Add New User</h2>
-    <form id="addUserForm">
-      <div class="form-group">
-        <label>Username:</label>
-        <input type="text" id="newUsername" required>
+  <!-- User Management Tab -->
+  <div id="users" class="tab-content active">
+    <div class="user-list">
+      <h2>Current Users</h2>
+      <div id="usersList"></div>
+    </div>
+
+    <div class="add-user">
+      <h2>Add New User</h2>
+      <form id="addUserForm">
+        <div class="form-group">
+          <label>Username:</label>
+          <input type="text" id="newUsername" required>
+        </div>
+        <div class="form-group">
+          <label>Password:</label>
+          <input type="password" id="newPassword" required>
+        </div>
+        <button type="submit">Add User</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- User Activity Tab -->
+  <div id="activity" class="tab-content">
+    <div class="activity-panel">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>User Activity Monitor</h2>
+        <button class="refresh-btn" onclick="loadActivity()">Refresh Activity</button>
       </div>
-      <div class="form-group">
-        <label>Password:</label>
-        <input type="password" id="newPassword" required>
+      
+      <div class="activity-grid">
+        <div>
+          <h3>Active Users (<span id="activeCount">0</span>)</h3>
+          <div id="activeUsersList"></div>
+        </div>
+        
+        <div>
+          <h3>Database Activity</h3>
+          <div id="dbActivityList"></div>
+        </div>
       </div>
-      <button type="submit">Add User</button>
-    </form>
+    </div>
+
+    <div class="message-form" id="messageForm">
+      <h3>Send Message to <span id="targetUser"></span></h3>
+      <div class="form-group">
+        <textarea id="messageText" placeholder="Enter your message..." rows="4"></textarea>
+      </div>
+      <button onclick="sendMessage()">Send Message</button>
+      <button onclick="closeMessageForm()">Cancel</button>
+    </div>
   </div>
 
   <div id="message"></div>
-
-  <script>
-    // Check if admin is logged in
-    const isLoggedIn = sessionStorage.getItem('isLoggedIn');
-    const username = sessionStorage.getItem('username');
-
-    if (!isLoggedIn || username !== 'admin') {
-      alert('Access denied. Admin login required.');
-      window.location.href = '/login.html';
-    } else {
-      document.getElementById('adminName').textContent = 'Welcome, ' + username;
-      loadUsers();
-    }
-
-    async function loadUsers() {
-      try {
-        const response = await fetch('/.netlify/functions/admin', {
-          method: 'GET'
-        });
-        const data = await response.json();
-        
-        if (data.success) {
-          displayUsers(data.users);
-        }
-      } catch (error) {
-        console.error('Error loading users:', error);
-      }
-    }
-
-    // UPDATED: displayUsers function with access restriction features
-    function displayUsers(users) {
-      const usersList = document.getElementById('usersList');
-      usersList.innerHTML = '';
-      
-      users.forEach(user => {
-        const userDiv = document.createElement('div');
-        userDiv.className = 'user-item';
-        const statusText = user.is_active ? 'Active' : 'Restricted';
-        const statusColor = user.is_active ? 'green' : 'red';
-        
-        userDiv.innerHTML = `
-          <span>ID: ${user.id} | Username: ${user.username} | 
-            Status: <span style="color: ${statusColor}">${statusText}</span>
-          </span>
-          <div>
-            <button onclick="editUser(${user.id}, '${user.username}', ${user.is_active})">Edit</button>
-            <button onclick="toggleUserAccess(${user.id}, ${user.is_active})" 
-                    class="${user.is_active ? 'restrict-btn' : 'activate-btn'}">
-              ${user.is_active ? 'Restrict Access' : 'Restore Access'}
-            </button>
-            <button class="delete-btn" onclick="deleteUser(${user.id})">Delete</button>
-          </div>
-        `;
-        usersList.appendChild(userDiv);
-      });
-    }
-
-    document.getElementById('addUserForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const username = document.getElementById('newUsername').value;
-      const password = document.getElementById('newPassword').value;
-      
-      try {
-        const response = await fetch('/.netlify/functions/admin', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'add', username, password })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          document.getElementById('message').innerHTML = 
-            '<p style="color: green;">User added successfully!</p>';
-          document.getElementById('addUserForm').reset();
-          loadUsers();
-        } else {
-          document.getElementById('message').innerHTML = 
-            '<p style="color: red;">Error: ' + data.message + '</p>';
-        }
-      } catch (error) {
-        document.getElementById('message').innerHTML = 
-          '<p style="color: red;">Error: ' + error.message + '</p>';
-      }
-    });
-
-    async function deleteUser(userId) {
-      if (confirm('Are you sure you want to delete this user?')) {
-        try {
-          const response = await fetch('/.netlify/functions/admin', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'delete', userId })
-          });
-          
-          const data = await response.json();
-          
-          if (data.success) {
-            document.getElementById('message').innerHTML = 
-              '<p style="color: green;">User deleted successfully!</p>';
-            loadUsers();
-          }
-        } catch (error) {
-          console.error('Error deleting user:', error);
-        }
-      }
-    }
-
-    // UPDATED: editUser function with access status parameter
-    function editUser(userId, currentUsername, isActive) {
-      const newUsername = prompt('Enter new username:', currentUsername);
-      
-      if (newUsername && newUsername !== currentUsername) {
-        const changePassword = confirm('Do you want to change the password?');
-        let newPassword = null;
-        
-        if (changePassword) {
-          newPassword = prompt('Enter new password:');
-          if (!newPassword) return;
-        }
-        
-        updateUser(userId, newUsername, newPassword, isActive);
-      }
-    }
-
-    // NEW: toggleUserAccess function
-    async function toggleUserAccess(userId, currentStatus) {
-      const action = currentStatus ? 'restrict access for' : 'restore access for';
-      const confirmMessage = `Are you sure you want to ${action} this user?`;
-        
-      if (confirm(confirmMessage)) {
-        try {
-          const response = await fetch('/.netlify/functions/admin', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              action: 'toggle_access', 
-              userId: userId, 
-              isActive: !currentStatus 
-            })
-          });
-          
-          const data = await response.json();
-          
-          if (data.success) {
-            const actionText = currentStatus ? 'restricted' : 'restored';
-            document.getElementById('message').innerHTML = 
-              `<p style="color: green;">User access ${actionText} successfully!</p>`;
-            loadUsers();
-          } else {
-            document.getElementById('message').innerHTML = 
-              `<p style="color: red;">Error: ${data.message}</p>`;
-          }
-        } catch (error) {
-          document.getElementById('message').innerHTML = 
-            `<p style="color: red;">Error: ${error.message}</p>`;
-        }
-      }
-    }
-
-    // UPDATED: updateUser function with access status parameter
-    async function updateUser(userId, username, password, isActive) {
-      try {
-        const updateData = { 
-          action: 'update', 
-          userId, 
-          username, 
-          isActive 
-        };
-        
-        if (password) {
-          updateData.password = password;
-        }
-
-        const response = await fetch('/.netlify/functions/admin', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updateData)
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          document.getElementById('message').innerHTML = 
-            '<p style="color: green;">User updated successfully!</p>';
-          loadUsers();
-        } else {
-          document.getElementById('message').innerHTML = 
-            '<p style="color: red;">Error: ' + data.message + '</p>';
-        }
-      } catch (error) {
-        console.error('Error updating user:', error);
-        document.getElementById('message').innerHTML = 
-          '<p style="color: red;">Error: ' + error.message + '</p>';
-      }
-    }
-
-    function goHome() {
-      window.location.href = '/index.html';
-    }
-
-    function logout() {
-      sessionStorage.removeItem('isLoggedIn');
-      sessionStorage.removeItem('username');
-      window.location.href = '/login.html';
-    }
-  </script>
-</body>
-</html>
