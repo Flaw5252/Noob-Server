@@ -56,7 +56,7 @@
     .form-group { 
       margin-bottom: 15px; 
     }
-    input, textarea { 
+    input, textarea, select { 
       width: 100%; 
       padding: 8px; 
       margin-top: 5px; 
@@ -107,6 +107,27 @@
       grid-template-columns: 1fr 1fr;
       gap: 20px;
     }
+    /* NEW CSS FOR MESSAGING SYSTEM */
+    .message-item {
+      background: #333;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border-left: 3px solid #007cba;
+    }
+    .message-meta {
+      font-size: 0.9em;
+      color: #aaa;
+      margin-top: 8px;
+    }
+    .unread {
+      border-left-color: #28a745;
+      background: #2a3d2a;
+    }
+    .message-content {
+      margin: 10px 0;
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
@@ -119,10 +140,11 @@
     </div>
   </div>
 
-  <!-- Tab Navigation -->
+  <!-- Tab Navigation - UPDATED -->
   <div class="tabs">
     <button class="tab active" onclick="showTab('users')">User Management</button>
     <button class="tab" onclick="showTab('activity')">User Activity</button>
+    <button class="tab" onclick="showTab('messages')">Messages</button>
   </div>
 
   <!-- User Management Tab -->
@@ -179,8 +201,34 @@
     </div>
   </div>
 
+  <!-- NEW MESSAGES TAB -->
+  <div id="messages" class="tab-content">
+    <div class="activity-panel">
+      <h2>Send Message to User</h2>
+      <div class="form-group">
+        <label>Select User:</label>
+        <select id="messageRecipient">
+          <option value="">Select a user...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Message:</label>
+        <textarea id="messageContent" placeholder="Enter your message..." rows="4"></textarea>
+      </div>
+      <button onclick="sendDirectMessage()">Send Message</button>
+    </div>
+    
+    <div class="activity-panel">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h2>Recent Messages</h2>
+        <button class="refresh-btn" onclick="loadMessageHistory()">Refresh Messages</button>
+      </div>
+      <div id="messageHistory"></div>
+    </div>
+  </div>
+
   <div id="message"></div>
-  <script>
+    <script>
     let selectedUserId = null;
     let selectedUsername = null;
 
@@ -196,7 +244,7 @@
       loadUsers();
     }
 
-    // Tab Management
+    // Tab Management - UPDATED
     function showTab(tabName) {
       // Hide all tab contents
       document.querySelectorAll('.tab-content').forEach(content => {
@@ -214,9 +262,12 @@
       // Add active class to clicked tab
       event.target.classList.add('active');
       
-      // Load activity data when activity tab is selected
+      // Load data when specific tabs are selected - UPDATED
       if (tabName === 'activity') {
         loadActivity();
+      } else if (tabName === 'messages') {
+        loadUsersForMessaging();
+        loadMessageHistory();
       }
     }
 
@@ -235,7 +286,8 @@
         console.error('Error loading users:', error);
       }
     }
-        function displayUsers(users) {
+
+    function displayUsers(users) {
       const usersList = document.getElementById('usersList');
       usersList.innerHTML = '';
       
@@ -307,7 +359,8 @@
         container.innerHTML = '<p>No active users found</p>';
       }
     }
-        function displayDbActivity(activity) {
+
+    function displayDbActivity(activity) {
       const container = document.getElementById('dbActivityList');
       container.innerHTML = '';
       
@@ -332,7 +385,110 @@
       }
     }
 
-    // Message form functions
+    // NEW MESSAGING FUNCTIONS FOR DEDICATED MESSAGES TAB
+    // Load users for messaging dropdown
+    async function loadUsersForMessaging() {
+      try {
+        const response = await fetch('/.netlify/functions/admin', {
+          method: 'GET'
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+          const select = document.getElementById('messageRecipient');
+          select.innerHTML = '<option value="">Select a user...</option>';
+          
+          data.users.forEach(user => {
+            if (user.username !== 'admin') { // Don't include admin in the list
+              select.innerHTML += `<option value="${user.id}">${user.username}</option>`;
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error loading users for messaging:', error);
+      }
+    }
+
+    // Send direct message from Messages tab
+    async function sendDirectMessage() {
+      const recipientId = document.getElementById('messageRecipient').value;
+      const message = document.getElementById('messageContent').value.trim();
+      
+      if (!recipientId || !message) {
+        alert('Please select a user and enter a message');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/.netlify/functions/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'send',
+            recipientId: recipientId,
+            message: message
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          document.getElementById('message').innerHTML = 
+            '<p style="color: green;">Message sent successfully!</p>';
+          document.getElementById('messageContent').value = '';
+          loadMessageHistory();
+        } else {
+          document.getElementById('message').innerHTML = 
+            '<p style="color: red;">Error: ' + data.error + '</p>';
+        }
+      } catch (error) {
+        document.getElementById('message').innerHTML = 
+          '<p style="color: red;">Error: ' + error.message + '</p>';
+      }
+    }
+
+    // Load message history
+    async function loadMessageHistory() {
+      try {
+        const response = await fetch('/.netlify/functions/messages', {
+          method: 'GET'
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+          displayMessageHistory(data.messages);
+        }
+      } catch (error) {
+        console.error('Error loading message history:', error);
+      }
+    }
+
+    function displayMessageHistory(messages) {
+      const container = document.getElementById('messageHistory');
+      container.innerHTML = '';
+      
+      messages.forEach(message => {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message-item ${message.read_at ? '' : 'unread'}`;
+        
+        const timestamp = new Date(message.created_at).toLocaleString();
+        const readStatus = message.read_at ? 'Read' : 'Unread';
+        
+        messageDiv.innerHTML = `
+          <div>
+            <strong>To: ${message.recipient_username}</strong>
+            <div class="message-content">${message.message}</div>
+            <div class="message-meta">Sent: ${timestamp} | Status: ${readStatus}</div>
+          </div>
+        `;
+        container.appendChild(messageDiv);
+      });
+      
+      if (messages.length === 0) {
+        container.innerHTML = '<p>No messages found</p>';
+      }
+    }
+        // Message form functions (existing - from Activity tab)
     function openMessageForm(userId, username) {
       selectedUserId = userId;
       selectedUsername = username;
@@ -533,10 +689,12 @@
       window.location.href = '/login.html';
     }
 
-    // Auto-refresh activity every 30 seconds when on activity tab
+    // Auto-refresh activity every 30 seconds when on activity tab - UPDATED
     setInterval(() => {
       if (document.getElementById('activity').classList.contains('active')) {
         loadActivity();
+      } else if (document.getElementById('messages').classList.contains('active')) {
+        loadMessageHistory(); // Also refresh messages tab
       }
     }, 30000);
   </script>
