@@ -21,20 +21,19 @@ export const handler = async (event, context) => {
           u.id, 
           u.username, 
           u.is_active,
-          us.last_activity,
-          us.is_active as session_active,
+          COALESCE(us.last_activity, u.created_at) as last_activity,
+          COALESCE(us.is_active, false) as session_active,
           COUNT(um.id) as unread_messages
         FROM users u
         LEFT JOIN user_sessions us ON u.id = us.user_id
         LEFT JOIN user_messages um ON u.id = um.user_id AND um.read_at IS NULL
         WHERE u.is_active = true 
-        AND us.last_activity > NOW() - INTERVAL '15 minutes'
-        AND us.is_active = true
-        GROUP BY u.id, u.username, u.is_active, us.last_activity, us.is_active
-        ORDER BY us.last_activity DESC
+        AND COALESCE(us.last_activity, u.created_at) > NOW() - INTERVAL '15 minutes'
+        GROUP BY u.id, u.username, u.is_active, us.last_activity, us.is_active, u.created_at
+        ORDER BY COALESCE(us.last_activity, u.created_at) DESC
       `;
 
-      // Also get database activity using pg_stat_activity pattern
+      // Get database activity using pg_stat_activity
       const dbActivity = await sql`
         SELECT 
           usename as username,
@@ -44,6 +43,9 @@ export const handler = async (event, context) => {
         FROM pg_stat_activity 
         WHERE state = 'active' 
         AND usename IS NOT NULL
+        AND usename != 'neondb_owner'
+        ORDER BY query_start DESC
+        LIMIT 10
       `;
 
       return {
@@ -83,8 +85,8 @@ export const handler = async (event, context) => {
       // Update user session activity
       if (action === 'update_activity') {
         await sql`
-          INSERT INTO user_sessions (user_id, last_activity)
-          VALUES (${userId}, NOW())
+          INSERT INTO user_sessions (user_id, last_activity, is_active)
+          VALUES (${userId}, NOW(), true)
           ON CONFLICT (user_id) 
           DO UPDATE SET last_activity = NOW(), is_active = true
         `;
@@ -110,14 +112,29 @@ export const handler = async (event, context) => {
           body: JSON.stringify({ success: true })
         };
       }
+
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ success: false, message: 'Invalid action' })
+      };
     }
+
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ success: false, message: 'Method not allowed' })
+    };
 
   } catch (error) {
     console.error('User activity function error:', error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ success: false, error: error.message })
+      body: JSON.stringify({ 
+        success: false, 
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Server error'
+      })
     };
   }
 };
