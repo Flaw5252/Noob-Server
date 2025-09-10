@@ -20,16 +20,32 @@ export const handler = async (event, context) => {
       const sql = neon(process.env.DATABASE_URL);
       const { username, password } = JSON.parse(event.body);
       
+      // Updated query to include is_active status
       const result = await sql`
-        SELECT id, username FROM users 
+        SELECT id, username, is_active FROM users 
         WHERE username = ${username} AND password = ${password}
       `;
       
       if (result.length > 0) {
+        const user = result[0];
+        
+        // Check if user account is active
+        if (!user.is_active) {
+          return {
+            statusCode: 403,
+            headers,
+            body: JSON.stringify({ 
+              success: false, 
+              message: 'Account access has been temporarily restricted. Please contact administrator.' 
+            })
+          };
+        }
+        
+        // User is active, allow login
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ success: true, user: result[0] })
+          body: JSON.stringify({ success: true, user: { id: user.id, username: user.username } })
         };
       } else {
         return {
