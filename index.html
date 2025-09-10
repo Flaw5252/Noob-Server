@@ -70,43 +70,6 @@
         sessionStorage.removeItem('username');
         window.location.href = '/login.html';
     }
-    // Page tracking function
-async function trackPageView() {
-    const sessionId = getOrCreateSessionId();
-    const currentPage = window.location.pathname;
-    const userId = sessionStorage.getItem('userId'); // Adjust based on your auth system
-    
-    try {
-        const response = await fetch('/.netlify/functions/track-activity', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: 'page_view',
-                sessionId: sessionId,
-                userId: userId,
-                currentPage: currentPage
-            })
-        });
-    } catch (error) {
-        console.error('Error tracking page view:', error);
-    }
-}
-
-// Generate or retrieve session ID
-function getOrCreateSessionId() {
-    let sessionId = sessionStorage.getItem('sessionId');
-    if (!sessionId) {
-        sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        sessionStorage.setItem('sessionId', sessionId);
-    }
-    return sessionId;
-}
-
-// Track page view on load
-window.addEventListener('load', trackPageView);
-
-// Track page changes for SPAs (if applicable)
-window.addEventListener('popstate', trackPageView);
   </script>
   
 
