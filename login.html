@@ -90,5 +90,26 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     }
 });
 </script>
+
+    // In your login success handler, also store the user ID
+if (data.success) {
+  sessionStorage.setItem('isLoggedIn', 'true');
+  sessionStorage.setItem('username', data.user.username);
+  sessionStorage.setItem('userId', data.user.id); // Add this line
+  
+  // Track login activity
+  await fetch('/.netlify/functions/activity', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'login',
+      userId: data.user.id,
+      username: data.user.username,
+      pageUrl: '/login.html'
+    })
+  });
+  
+  window.location.href = '/';
+}
 </body>
 </html>
