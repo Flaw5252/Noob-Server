@@ -70,7 +70,7 @@ export async function handler(event, context) {
           };
         }
 
-        // Insert message
+        // Insert message using Neon serverless driver
         const result = await sql`
           INSERT INTO messages (sender_id, recipient_id, message, created_at)
           VALUES (${adminUser[0].id}, ${recipientId}, ${message}, NOW())
@@ -85,8 +85,37 @@ export async function handler(event, context) {
             messageId: result[0].id
           })
         };
+      }
 
-      } else if (action === 'mark_read') {
+      if (action === 'get_user_messages') {
+        const { userId } = JSON.parse(event.body);
+        
+        // Get messages for a specific user
+        const userMessages = await sql`
+          SELECT 
+            m.id,
+            m.message,
+            m.created_at,
+            m.read_at,
+            sender.username as sender_username
+          FROM messages m
+          JOIN users sender ON m.sender_id = sender.id
+          WHERE m.recipient_id = ${userId}
+          ORDER BY m.created_at DESC
+          LIMIT 20
+        `;
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            messages: userMessages
+          })
+        };
+      }
+
+      if (action === 'mark_read') {
         const { messageId } = JSON.parse(event.body);
         
         await sql`
@@ -103,7 +132,6 @@ export async function handler(event, context) {
           })
         };
       }
-
     }
 
     return {
