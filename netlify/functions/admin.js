@@ -14,10 +14,10 @@ export async function handler(event) {
   }
 
   try {
-    // UPDATED: GET request now includes is_active column
+    // GET request - fetch all users with their active status
     if (event.httpMethod === 'GET') {
       const users = await sql`
-        SELECT id, username, is_active 
+        SELECT id, username, is_active, created_at
         FROM users 
         ORDER BY id
       `;
@@ -32,92 +32,186 @@ export async function handler(event) {
     if (event.httpMethod === 'POST') {
       const data = JSON.parse(event.body);
 
-      // NEW: Handle toggle access functionality
+      // Handle toggle access functionality
       if (data.action === 'toggle_access') {
-        await sql`
+        const result = await sql`
           UPDATE users 
           SET is_active = ${data.isActive}
           WHERE id = ${data.userId}
+          RETURNING id, username, is_active
         `;
         
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({ success: true })
-        };
-      }
-
-      // UPDATED: Handle user update with access status
-      if (data.action === 'update') {
-        if (data.password) {
-          await sql`
-            UPDATE users 
-            SET username = ${data.username}, 
-                password = ${data.password},
-                is_active = ${data.isActive}
-            WHERE id = ${data.userId}
-          `;
-        } else {
-          await sql`
-            UPDATE users 
-            SET username = ${data.username},
-                is_active = ${data.isActive}
-            WHERE id = ${data.userId}
-          `;
+        if (result.length === 0) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ success: false, message: 'User not found' })
+          };
         }
         
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ success: true })
+          body: JSON.stringify({ 
+            success: true, 
+            message: `User access ${data.isActive ? 'restored' : 'restricted'} successfully`,
+            user: result[0]
+          })
         };
       }
 
-      // UPDATED: Handle add user with default active status
+      // Handle user update
+      if (data.action === 'update') {
+        let result;
+        
+        if (data.password) {
+          result = await sql`
+            UPDATE users 
+            SET username = ${data.username}, 
+                password = ${data.password},
+                is_active = ${data.isActive || true}
+            WHERE id = ${data.userId}
+            RETURNING id, username, is_active
+          `;
+        } else {
+          result = await sql`
+            UPDATE users 
+            SET username = ${data.username},
+                is_active = ${data.isActive || true}
+            WHERE id = ${data.userId}
+            RETURNING id, username, is_active
+          `;
+        }
+        
+        if (result.length === 0) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ success: false, message: 'User not found' })
+          };
+        }
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ 
+            success: true,
+            message: 'User updated successfully',
+            user: result[0]
+          })
+        };
+      }
+
+      // Handle add new user
       if (data.action === 'add') {
+        // Check if username already exists
+        const existingUser = await sql`
+          SELECT id FROM users WHERE username = ${data.username}
+        `;
+        
+        if (existingUser.length > 0) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ success: false, message: 'Username already exists' })
+          };
+        }
+        
         try {
-          await sql`
+          const result = await sql`
             INSERT INTO users (username, password, is_active)
             VALUES (${data.username}, ${data.password}, true)
+            RETURNING id, username, is_active
           `;
           
           return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ success: true })
+            body: JSON.stringify({ 
+              success: true,
+              message: 'User added successfully',
+              user: result[0]
+            })
           };
         } catch (error) {
-          if (error.message.includes('duplicate') || error.message.includes('unique')) {
-            return {
-              statusCode: 400,
-              headers,
-              body: JSON.stringify({ success: false, message: 'Username already exists' })
-            };
-          }
-          throw error;
+          console.error('Error adding user:', error);
+          return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ success: false, message: 'Failed to add user' })
+          };
         }
       }
 
-      // EXISTING: Handle delete user (unchanged)
+      // Handle delete user
       if (data.action === 'delete') {
-        await sql`
-          DELETE FROM users WHERE id = ${data.userId}
+        const result = await sql`
+          DELETE FROM users 
+          WHERE id = ${data.userId}
+          RETURNING id, username
+        `;
+        
+        if (result.length === 0) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ success: false, message: 'User not found' })
+          };
+        }
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ 
+            success: true,
+            message: 'User deleted successfully'
+          })
+        };
+      }
+
+      // Handle bulk operations (optional enhancement)
+      if (data.action === 'bulk_toggle') {
+        const result = await sql`
+          UPDATE users 
+          SET is_active = ${data.isActive}
+          WHERE id = ANY(${data.userIds})
+          RETURNING id, username, is_active
         `;
         
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ success: true })
+          body: JSON.stringify({ 
+            success: true,
+            message: `${result.length} users updated successfully`,
+            users: result
+          })
         };
       }
+
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ success: false, message: 'Invalid action' })
+      };
     }
+
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ success: false, message: 'Method not allowed' })
+    };
 
   } catch (error) {
     console.error('Admin function error:', error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ success: false, message: error.message })
+      body: JSON.stringify({ 
+        success: false, 
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Server error'
+      })
     };
   }
 }
