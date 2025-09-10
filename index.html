@@ -70,6 +70,27 @@
         sessionStorage.removeItem('username');
         window.location.href = '/login.html';
     }
+    // Set up real-time message listening
+async function setupMessageListener(userId) {
+  try {
+    const response = await fetch('/.netlify/functions/message-listener', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        action: 'listen',
+        userId: userId 
+      })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      // Handle incoming message
+      displayNewMessage(data.message);
+    }
+  } catch (error) {
+    console.error('Error setting up message listener:', error);
+  }
+}
   </script>
   
 
