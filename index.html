@@ -72,29 +72,7 @@
     }
   </script>
   
-  <script>
-// Add this to track user activity
-const username = sessionStorage.getItem('username');
-if (username) {
-    const currentPage = window.location.pathname;
-    
-    // Track initial page load
-    fetch('/.netlify/functions/track-activity', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, currentPage })
-    });
-    
-    // Update activity every 2 minutes
-    setInterval(() => {
-        fetch('/.netlify/functions/track-activity', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, currentPage })
-        });
-    }, 120000);
-}
-</script>
+
   
 </body>
 </html>
