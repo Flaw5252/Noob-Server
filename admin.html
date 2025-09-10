@@ -228,46 +228,8 @@
       sessionStorage.removeItem('username');
       window.location.href = '/login.html';
     }
-    // Function to load active users
-async function loadActiveUsers() {
-    try {
-        const response = await fetch('/.netlify/functions/track-activity', {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        const data = await response.json();
-        
-        if (data.success) {
-            displayActiveUsers(data.activeUsers);
-        }
-    } catch (error) {
-        console.error('Error loading active users:', error);
-    }
-}
-
-// Display active users in the admin panel
-function displayActiveUsers(activeUsers) {
-    const activeUsersList = document.getElementById('activeUsersList');
-    activeUsersList.innerHTML = '';
-    
-    activeUsers.forEach(user => {
-        const userDiv = document.createElement('div');
-        userDiv.className = 'user-item';
-        userDiv.innerHTML = `
-            <span>User ID: ${user.user_id || 'Anonymous'} | Page: ${user.current_page} | Last Activity: ${new Date(user.last_activity).toLocaleString()}</span>
-        `;
-        activeUsersList.appendChild(userDiv);
-    });
-}
-
-// Auto-refresh active users every 30 seconds
-setInterval(loadActiveUsers, 30000);
   </script>
 
-<div class="user-list">
-    <h2>Currently Active Users</h2>
-    <div id="activeUsersList"></div>
-</div>
 
 </body>
 </html>
