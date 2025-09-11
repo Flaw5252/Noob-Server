@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chatroom - Noob Server</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://kit.fontawesome.com/fb203351e2.js" crossorigin="anonymous"></script>
+  <style>
+    .chatroom-container {
+      max-width: 800px;
+      margin: 50px auto;
+      background: #2a2a2a;
+      border-radius: 10px;
+      padding: 20px;
+      height: 80vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: #1a1a1a;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+    .message {
+      margin-bottom: 15px;
+      padding: 10px;
+      background: #333;
+      border-radius: 5px;
+      border-left: 3px solid #007cba;
+    }
+    .message-header {
+      font-weight: bold;
+      color: #007cba;
+      margin-bottom: 5px;
+    }
+    .message-time {
+      font-size: 0.8em;
+      color: #aaa;
+      float: right;
+    }
+    .chat-input {
+      display: flex;
+      gap: 10px;
+    }
+    .chat-input input {
+      flex: 1;
+      padding: 10px;
+      background: #333;
+      color: white;
+      border: 1px solid #555;
+      border-radius: 5px;
+    }
+    .chat-input button {
+      padding: 10px 20px;
+      background: #007cba;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="dropdown">
+    <button class="dropbtn">☰</button>
+    <div class="dropdown-content">
+      <a href="index.html">
+        <i class="fa fa-fw fa-home"></i> Home 
+      </a>
+      <a href="collection.html">
+        <i class="fa fa-fw fa-gamepad"></i> Games 
+      </a>
+      <a href="chatroom.html">
+        <i class="fa fa-fw fa-comments"></i> Chatroom 
+      </a>
+      <a href="admin.html" id="adminLink">
+        <i class="fa fa-fw fa-cog"></i> Admin Panel 
+      </a>
+      <a href="#" onclick="logout()">
+        <i class="fa fa-fw fa-sign-out"></i> Logout 
+      </a>
+    </div>
+  </div>
+
+  <div class="chatroom-container">
+    <h2 style="color: white; text-align: center;">Global Chatroom</h2>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input">
+      <input type="text" id="messageInput" placeholder="Type your message..." maxlength="500">
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    let currentUserId = null;
+    let currentUsername = null;
+    let messageCheckInterval;
+
+    // Check authentication
+    const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+    const username = sessionStorage.getItem('username');
+    const userId = sessionStorage.getItem('userId');
+
+    if (!isLoggedIn) {
+      window.location.href = '/login.html';
+    } else {
+      currentUserId = userId;
+      currentUsername = username;
+      
+      // Show admin link only for admin user
+      const adminLink = document.getElementById('adminLink');
+      if (username === 'admin') {
+        adminLink.style.display = 'block';
+      } else {
+        adminLink.style.display = 'none';
+      }
+
+      // Load initial messages and start real-time updates
+      loadMessages();
+      startMessagePolling();
+    }
+
+    async function loadMessages() {
+      try {
+        const response = await fetch('/.netlify/functions/chatroom');
+        const data = await response.json();
+        
+        if (data.success) {
+          displayMessages(data.messages);
+        }
+      } catch (error) {
+        console.error('Error loading messages:', error);
+      }
+    }
+
+    function displayMessages(messages) {
+      const container = document.getElementById('chatMessages');
+      container.innerHTML = '';
+      
+      messages.forEach(message => {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message';
+        
+        const timestamp = new Date(message.created_at).toLocaleString();
+        
+        messageDiv.innerHTML = `
+          <div class="message-header">
+            ${message.username}
+            <span class="message-time">${timestamp}</span>
+          </div>
+          <div>${message.message}</div>
+        `;
+        
+        container.appendChild(messageDiv);
+      });
+      
+      // Scroll to bottom
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const message = input.value.trim();
+      
+      if (!message) return;
+      
+      try {
+        const response = await fetch('/.netlify/functions/chatroom', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'send',
+            userId: currentUserId,
+            message: message
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          input.value = '';
+          loadMessages(); // Refresh messages
+        } else {
+          alert('Error sending message: ' + data.error);
+        }
+      } catch (error) {
+        console.error('Error sending message:', error);
+        alert('Error sending message');
+      }
+    }
+
+    function startMessagePolling() {
+      // Check for new messages every 3 seconds
+      messageCheckInterval = setInterval(loadMessages, 3000);
+    }
+
+    // Handle Enter key in input
+    document.getElementById('messageInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+
+    function logout() {
+      if (messageCheckInterval) {
+        clearInterval(messageCheckInterval);
+      }
+      sessionStorage.removeItem('isLoggedIn');
+      sessionStorage.removeItem('username');
+      sessionStorage.removeItem('userId');
+      window.location.href = '/login.html';
+    }
+
+    // Clean up when page is unloaded
+    window.addEventListener('beforeunload', function() {
+      if (messageCheckInterval) {
+        clearInterval(messageCheckInterval);
+      }
+    });
+  </script>
+</body>
+</html>
