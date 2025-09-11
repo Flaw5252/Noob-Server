@@ -16,27 +16,28 @@
     }
     
     .chatroom-container {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
-    
-    .chat-wrapper {
-      width: 100%;
-      max-width: 800px;
-      background: #2a2a2a;
-      border-radius: 10px;
-      padding: 20px;
-      height: 80vh;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-    }
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.chat-wrapper {
+  width: 100%;
+  max-width: 800px;
+  background: #2a2a2a;
+  border-radius: 10px;
+  padding: 20px;
+  height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  margin-top: 60px;
+}
         .chat-messages {
       flex: 1;
       overflow-y: auto;
