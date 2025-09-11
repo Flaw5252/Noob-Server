@@ -91,6 +91,99 @@ async function setupMessageListener(userId) {
     console.error('Error setting up message listener:', error);
   }
 }
+    // Check for new messages every 10 seconds
+let messageCheckInterval;
+let currentUserId = null;
+
+function startMessageChecking(userId) {
+  currentUserId = userId;
+  
+  // Check immediately
+  checkForNewMessages();
+  
+  // Then check every 10 seconds
+  messageCheckInterval = setInterval(checkForNewMessages, 10000);
+}
+
+async function checkForNewMessages() {
+  if (!currentUserId) return;
+  
+  try {
+    const response = await fetch(`/.netlify/functions/user-messages?userId=${currentUserId}`);
+    const data = await response.json();
+    
+    if (data.success && data.messages.length > 0) {
+      displayNewMessages(data.messages);
+    }
+  } catch (error) {
+    console.error('Error checking for messages:', error);
+  }
+}
+
+function displayNewMessages(messages) {
+  messages.forEach(message => {
+    // Create a notification div
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #007cba;
+      color: white;
+      padding: 15px;
+      border-radius: 5px;
+      max-width: 300px;
+      z-index: 1000;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    `;
+    
+    notification.innerHTML = `
+      <strong>New Message from ${message.sender_username}:</strong><br>
+      ${message.message}<br>
+      <small>${new Date(message.created_at).toLocaleString()}</small>
+      <button onclick="markMessageRead(${message.id}, this.parentElement)" 
+              style="margin-top: 10px; background: white; color: #007cba; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
+        Mark as Read
+      </button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 30 seconds if not manually closed
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.remove();
+      }
+    }, 30000);
+  });
+}
+
+async function markMessageRead(messageId, notificationElement) {
+  try {
+    const response = await fetch('/.netlify/functions/user-messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'mark_read',
+        messageId: messageId
+      })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      notificationElement.remove();
+    }
+  } catch (error) {
+    console.error('Error marking message as read:', error);
+  }
+}
+
+function stopMessageChecking() {
+  if (messageCheckInterval) {
+    clearInterval(messageCheckInterval);
+    messageCheckInterval = null;
+  }
+}
   </script>
   
 
