@@ -181,6 +181,77 @@
     window.addEventListener('beforeunload', function() {
       stopMessageChecking();
     });
+    function showReplyForm(messageId, senderUsername, notificationElement) {
+  notificationElement.innerHTML = `
+    <strong>Reply to ${senderUsername}:</strong><br>
+    <textarea id="replyText_${messageId}" placeholder="Type your reply..." 
+              style="width: 100%; height: 60px; margin: 10px 0; padding: 5px; border: none; border-radius: 3px;"></textarea>
+    <div>
+      <button onclick="sendReply(${messageId}, this.parentElement.parentElement)" 
+              style="background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin-right: 5px;">
+        Send Reply
+      </button>
+      <button onclick="cancelReply(this.parentElement.parentElement)" 
+              style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
+        Cancel
+      </button>
+    </div>
+  `;
+  
+  document.getElementById(`replyText_${messageId}`).focus();
+}
+
+async function sendReply(messageId, notificationElement) {
+  const replyText = document.getElementById(`replyText_${messageId}`).value.trim();
+  
+  if (!replyText) {
+    alert('Please enter a reply message');
+    return;
+  }
+  
+  try {
+    const response = await fetch('/.netlify/functions/user-messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'reply_to_admin',
+        userId: currentUserId,
+        message: replyText
+      })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      await markMessageRead(messageId, notificationElement);
+      
+      // Show success message
+      const successNotification = document.createElement('div');
+      successNotification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #28a745;
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        z-index: 1001;
+      `;
+      successNotification.innerHTML = 'Reply sent successfully!';
+      document.body.appendChild(successNotification);
+      
+      setTimeout(() => successNotification.remove(), 3000);
+    } else {
+      alert('Error sending reply: ' + data.error);
+    }
+  } catch (error) {
+    console.error('Error sending reply:', error);
+    alert('Error sending reply');
+  }
+}
+
+function cancelReply(notificationElement) {
+  notificationElement.remove();
+}
   </script>
 </body>
 </html>
