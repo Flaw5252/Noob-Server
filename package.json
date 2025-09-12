@@ -1,10 +1,11 @@
 {
   "name": "your-project-name",
   "version": "1.0.0",
-  "type": "module",
+  "type": "commonjs",
   "dependencies": {
     "@neondatabase/serverless": "^0.9.0",
-    "ws": "^8.14.0"
+    "ws": "^8.14.0",
+    "pg": "^8.10.0"
   },
   "devDependencies": {
     "@types/ws": "^8.5.0"
