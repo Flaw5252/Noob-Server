@@ -54,6 +54,28 @@ export async function handler(event, context) {
           };
         }
 
+        // Clear chat
+
+      if (data.action === 'clear_chat') {
+  const result = await sql`
+    DELETE FROM messages
+    WHERE 1=1
+    RETURNING id
+  `;
+  
+  return {
+    statusCode: 200,
+    headers,
+    body: JSON.stringify({ 
+      success: true,
+      message: `${result.length} messages deleted from chatroom`
+    })
+  };
+}
+
+
+        
+
         // Get admin user ID
         const adminUser = await sql`
           SELECT id FROM users WHERE username = 'admin' LIMIT 1
