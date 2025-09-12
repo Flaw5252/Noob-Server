@@ -170,7 +170,32 @@ export async function handler(event) {
       }
 
     // Clear chatroom
-      
+      async function clearChatroom() {
+  if (!confirm('Are you sure you want to clear the chatroom? This cannot be undone.')) return;
+
+  try {
+    const response = await fetch('/.netlify/functions/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'clear_chat' })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      document.getElementById('message').innerHTML = 
+        `<p style="color: green;">${data.message}</p>`;
+      loadMessageHistory(); // Refresh the message list
+    } else {
+      document.getElementById('message').innerHTML = 
+        `<p style="color: red;">Failed to clear chatroom: ${data.message}</p>`;
+    }
+  } catch (error) {
+    document.getElementById('message').innerHTML = 
+      `<p style="color: red;">Error: ${error.message}</p>`;
+  }
+}
+
 
 
 
