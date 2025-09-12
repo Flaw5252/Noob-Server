@@ -231,25 +231,3 @@ const USER_ID = /* get from login logic, maybe from your session/localStorage */
 const USERNAME = /* same for username */;
 const AUTH_TOKEN = /* whatever you use for auth */;
 
-// Send heartbeat
-function sendHeartbeat(activityType, pageUrl) {
-  fetch('/.netlify/functions/heartbeat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      userId: USER_ID,
-      username: USERNAME,
-      authToken: AUTH_TOKEN,
-      activityType: activityType || 'page_view',
-      pageUrl: pageUrl || window.location.pathname
-    })
-  }).catch(err => console.error('Heartbeat failed', err));
-}
-
-// initial heartbeat on load
-sendHeartbeat('page_load', window.location.pathname);
-
-// then repeat every minute
-setInterval(() => {
-  sendHeartbeat('heartbeat', window.location.pathname);
-}, 60000);
