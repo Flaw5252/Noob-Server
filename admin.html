@@ -385,38 +385,6 @@
       }
     }
 
-
-
-
-
-// CLEAR CHATROOM
-<button class="delete-btn" onclick="clearChatroom()">Clear Chatroom</button>
-
-      
-    // NEW MESSAGING FUNCTIONS FOR DEDICATED MESSAGES TAB
-    // Load users for messaging dropdown
-    async function loadUsersForMessaging() {
-      try {
-        const response = await fetch('/.netlify/functions/admin', {
-          method: 'GET'
-        });
-        const data = await response.json();
-        
-        if (data.success) {
-          const select = document.getElementById('messageRecipient');
-          select.innerHTML = '<option value="">Select a user...</option>';
-          
-          data.users.forEach(user => {
-            if (user.username !== 'admin') { // Don't include admin in the list
-              select.innerHTML += `<option value="${user.id}">${user.username}</option>`;
-            }
-          });
-        }
-      } catch (error) {
-        console.error('Error loading users for messaging:', error);
-      }
-    }
-
     // Send direct message from Messages tab
     async function sendDirectMessage() {
       const recipientId = document.getElementById('messageRecipient').value;
