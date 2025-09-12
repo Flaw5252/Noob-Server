@@ -169,6 +169,16 @@ export async function handler(event) {
         };
       }
 
+    // Clear chatroom
+      
+
+
+
+
+
+
+      
+
       // Handle bulk operations (optional enhancement)
       if (data.action === 'bulk_toggle') {
         const result = await sql`
