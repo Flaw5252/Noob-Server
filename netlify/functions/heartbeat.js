@@ -1,49 +1,56 @@
+// netlify/functions/heartbeat.js
+
 const { Client } = require('pg');
 
+// Use your Neon / Postgres connection string
 const connectionString = process.env.DATABASE_URL;
 
 exports.handler = async (event, context) => {
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+    return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
   let body;
   try {
     body = JSON.parse(event.body);
   } catch (err) {
-    return { statusCode: 400, body: 'Bad Request: invalid JSON' };
+    return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON' }) };
   }
 
-  const { userId, username, activityType, pageUrl, authToken } = body;
+  const { userId, username, authToken, activityType, pageUrl } = body;
   if (!userId || !authToken) {
-    return { statusCode: 400, body: 'Bad Request: missing userId or authToken' };
+    return { statusCode: 400, body: JSON.stringify({ error: 'Missing userId or authToken' }) };
   }
 
-  // TODO: Verify authToken here
+  // TODO: verify authToken here, ensure user is authorized
+  // Example placeholder: assume valid for now
 
   const timestamp = new Date().toISOString();
 
   const client = new Client({
-    connectionString
+    connectionString,
+    ssl: { rejectUnauthorized: false }   // adjust if needed
   });
 
   try {
     await client.connect();
 
     // Insert into user_activity
-    await client.query(
-      'INSERT INTO user_activity (user_id, username, activity_type, page_url, timestamp) VALUES ($1, $2, $3, $4, $5)',
-      [userId, username, activityType, pageUrl, timestamp]
-    );
+    const insertActivity = `
+      INSERT INTO user_activity (user_id, username, activity_type, page_url, timestamp, is_active)
+      VALUES ($1, $2, $3, $4, $5, true)
+    `;
+    await client.query(insertActivity, [userId, username, activityType || 'heartbeat', pageUrl || '', timestamp]);
 
-    // Upsert into user_sessions
-    await client.query(
-      `INSERT INTO user_sessions (user_id, username, last_activity, is_online)
-       VALUES ($1, $2, $3, true)
-       ON CONFLICT (user_id)
-       DO UPDATE SET last_activity = EXCLUDED.last_activity`,
-      [userId, username, timestamp]
-    );
+    // Upsert into user_sessions: set last_activity, mark online
+    // If there's a unique constraint on user_id, ON CONFLICT handles update
+    const upsertSession = `
+      INSERT INTO user_sessions (user_id, username, last_activity, is_online)
+      VALUES ($1, $2, $3, true)
+      ON CONFLICT (user_id)
+      DO UPDATE SET last_activity = EXCLUDED.last_activity, username = EXCLUDED.username, is_online = true
+    `;
+    await client.query(upsertSession, [userId, username, timestamp]);
 
     return {
       statusCode: 200,
@@ -51,10 +58,10 @@ exports.handler = async (event, context) => {
     };
 
   } catch (err) {
-    console.error('Heartbeat error:', err);
+    console.error('heartbeat error', err);
     return {
       statusCode: 500,
-      body: 'Server Error'
+      body: JSON.stringify({ error: 'Server error' })
     };
   } finally {
     await client.end();
