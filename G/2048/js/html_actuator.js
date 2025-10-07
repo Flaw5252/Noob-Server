@@ -31,11 +31,9 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
         self.message(true); // You win!
       }
     }
-
   });
 };
 
-// Continues the game (both restart and keep playing)
 HTMLActuator.prototype.continueGame = function () {
   this.clearMessage();
 };
@@ -52,11 +50,8 @@ HTMLActuator.prototype.addTile = function (tile) {
   var wrapper   = document.createElement("div");
   var inner     = document.createElement("div");
   var position  = tile.previousPosition || { x: tile.x, y: tile.y };
-  var positionClass = this.positionClass(position);
 
-  // We can't use classlist because it somehow glitches when replacing classes
-  var classes = ["tile", "tile-" + tile.value, positionClass];
-
+  var classes = ["tile", "tile-" + tile.value];
   if (tile.value > 2048) classes.push("tile-super");
 
   this.applyClasses(wrapper, classes);
@@ -64,17 +59,17 @@ HTMLActuator.prototype.addTile = function (tile) {
   inner.classList.add("tile-inner");
   inner.textContent = tile.value;
 
+  // Set initial position
+  this.setTilePosition(wrapper, position);
+
   if (tile.previousPosition) {
-    // Make sure that the tile gets rendered in the previous position first
     window.requestAnimationFrame(function () {
-      classes[2] = self.positionClass({ x: tile.x, y: tile.y });
-      self.applyClasses(wrapper, classes); // Update the position
+      self.setTilePosition(wrapper, { x: tile.x, y: tile.y });
     });
   } else if (tile.mergedFrom) {
     classes.push("tile-merged");
     this.applyClasses(wrapper, classes);
 
-    // Render the tiles that merged
     tile.mergedFrom.forEach(function (merged) {
       self.addTile(merged);
     });
@@ -83,10 +78,7 @@ HTMLActuator.prototype.addTile = function (tile) {
     this.applyClasses(wrapper, classes);
   }
 
-  // Add the inner part of the tile to the wrapper
   wrapper.appendChild(inner);
-
-  // Put the tile on the board
   this.tileContainer.appendChild(wrapper);
 };
 
@@ -94,13 +86,14 @@ HTMLActuator.prototype.applyClasses = function (element, classes) {
   element.setAttribute("class", classes.join(" "));
 };
 
-HTMLActuator.prototype.normalizePosition = function (position) {
-  return { x: position.x + 1, y: position.y + 1 };
-};
+HTMLActuator.prototype.setTilePosition = function (element, position) {
+  const cellSize = 20;      // Tile size in px
+  const cellGap = 5;        // Gap between tiles in px
 
-HTMLActuator.prototype.positionClass = function (position) {
-  position = this.normalizePosition(position);
-  return "tile-position-" + position.x + "-" + position.y;
+  const x = position.x * (cellSize + cellGap);
+  const y = position.y * (cellSize + cellGap);
+
+  element.style.transform = `translate(${y}px, ${x}px)`;
 };
 
 HTMLActuator.prototype.updateScore = function (score) {
@@ -115,7 +108,6 @@ HTMLActuator.prototype.updateScore = function (score) {
     var addition = document.createElement("div");
     addition.classList.add("score-addition");
     addition.textContent = "+" + difference;
-
     this.scoreContainer.appendChild(addition);
   }
 };
@@ -133,7 +125,6 @@ HTMLActuator.prototype.message = function (won) {
 };
 
 HTMLActuator.prototype.clearMessage = function () {
-  // IE only takes one value to remove at a time.
   this.messageContainer.classList.remove("game-won");
   this.messageContainer.classList.remove("game-over");
 };
